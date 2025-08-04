@@ -1,0 +1,7 @@
+<h2>{{ service.nom }}</h2>
+<h3>Postes associés :</h3>
+<ul>
+    {% for poste in postes %}
+        <li>{{ poste.nom }}</li>
+    {% endfor %}
+</ul>

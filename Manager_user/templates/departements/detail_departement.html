@@ -1,0 +1,9 @@
+<h2>{{ departement.nom }}</h2>
+<p>{{ departement.description }}</p>
+
+<h3>Services associés :</h3>
+<ul>
+    {% for service in services %}
+        <li><a href="{% url 'detail_service' service.pk %}">{{ service.nom }}</a></li>
+    {% endfor %}
+</ul>

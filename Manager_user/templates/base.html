@@ -1,0 +1,57 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Dashboard{% endblock %}</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+    
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo d-flex align-items-center mb-4">
+            <img src="{% static 'logo1.png' %}" alt="Logo" class="logo-img me-2">
+            <div class="logo-text">
+                <span class="d-block fw-bold" style="color: #1c1a7e;">Orhan</span>
+                <small class="d-block fw-bold" style="color: #1c1a7e;font-size: large;">Automotive</small>
+            </div>
+        </div>
+        
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'accueil' %}">
+                    <i class="fa-solid fa-house"></i> Accueil
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'liste_employes' %}">
+                    <i class="fa-solid fa-user"></i> Employés
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'departements' %}">
+                    <i class="fa-solid fa-building"></i> Départements
+                </a>
+            </li>
+            
+        </ul>
+        <div class="logout mt-4">
+            <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-primary w-20">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
+            </form>
+        </div>
+        
+    </div>
+    
+    <div class="content">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

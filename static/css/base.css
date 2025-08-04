@@ -1,0 +1,141 @@
+body {
+    display: flex;
+    min-height: 100vh;
+    margin: 0;
+    background-color: #fbfdff;
+    font-family: 'Times New Roman', Times, serif;
+}
+.sidebar {
+    width: 250px;
+    background-color: #ffffff;
+    padding: 20px;
+    border-right: 1px solid #fbfdff;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+.sidebar .logo img {
+    width: 70px;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+    margin-bottom: 5px;
+}
+.nav-link {
+    color: #2f92f6;
+    font-weight: 500;
+    transition: 0.3s;
+    font-size: 20px;
+}
+.nav-link:hover,
+.nav-link:focus {
+    color: #1c1a7e;
+}
+.nav-link i {
+    margin-right: 8px;
+}
+.logout button {
+    font-weight: bold;
+}
+.logout button:hover {
+    color: white;
+}
+.content {
+    flex-grow: 1;
+    padding: 30px;
+}
+.custom-table {
+    border-radius: 10px;
+    overflow: hidden;
+    background-color: #ffffff;
+}
+.table td, .table th {
+    vertical-align: middle;
+    text-align: center;
+}
+.table-wrapper {
+    display: flex;
+    justify-content: center;
+}
+.custom-table {
+    width: 1000px;
+    border-radius: 10px;
+    overflow: hidden;
+}
+.custom-table thead {
+    background-color: #4da3ff;
+    color: white;
+    text-align: center;
+}
+.custom-table th,
+.custom-table td {
+    padding: 12px;
+    vertical-align: middle;
+}
+.custom-table tbody tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+.custom-table tbody tr:hover {
+    background-color: #eef6ff;
+}
+.custom-table td:last-child {
+    text-align: center;
+}
+.left-panel {
+    flex: 1;
+    background-color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding: 40px;
+}
+.right-panel {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.card-login {
+    background-color: #ffffff;
+    padding: 100px;
+    border-radius: 15px;
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 500px;
+    text-align: center;
+    min-height: 600px; 
+}
+.card-login h2 {
+    font-weight: bold;
+    margin-bottom: 25px;
+}
+.card-login .form-control {
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 16px;
+}
+.card-login button {
+    border-radius: 10px;
+    font-size: 16px;
+    padding: 10px 25px;
+    background-color: #2f6fe4;
+    border: none;
+}
+.card-login button:hover {
+    background-color: #265ec2;
+}
+
+form.card input,
+
+form.card select {
+    width: 100%;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+}
+
+form.card .text-end {
+    margin-top: 20px;
+}

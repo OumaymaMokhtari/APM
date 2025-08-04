@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block title %}Liste des employés{% endblock %}
+
+{% block content %}
+<h2 class="mb-4 text-center">Liste des employés</h2>
+
+<div class="text-center mb-5">
+    <a href="{% url 'ajouter_employe' %}" class="btn btn-dark">
+        <i class="fa-solid fa-user-plus"></i>
+    </a>
+</div>
+
+<div class="table-wrapper">
+    <div class="table-responsive">
+        <table class="table custom-table shadow">
+            <thead class="thead-blue">
+                <tr>
+                    <th>ID</th>
+                    <th>Nom</th>
+                    <th>Prénom</th>
+                    <th>Rôle</th>
+                    <th>Téléphone</th>
+                    <th>Département</th>
+                    <th>Username</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in employes %}
+                <tr>
+                    <td>{{ e.id }}</td>
+                    <td>{{ e.nom }}</td>
+                    <td>{{ e.prenom }}</td>
+                    <td>{{ e.role }}</td>
+                    <td>{{ e.telephone }}</td>
+                    <td>{{ e.departement.nom }}</td>
+                    <td>{{ e.username }}</td>
+                    <td>
+                        <a href="{% url 'modifier_employe' e.id %}" class="btn btn-info btn-sm">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </a>
+                        <a href="{% url 'supprimer_employe' e.id %}" class="btn btn-primary btn-sm" onclick="return confirm('Confirmer la suppression ?');">
+                            <i class="fa-solid fa-trash"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="text-center">Aucun employé trouvé.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

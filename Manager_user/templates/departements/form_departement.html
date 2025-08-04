@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}Ajouter un Département{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Ajouter un département</h2>
+
+<form method="post" class="card p-4 shadow">
+    {% csrf_token %}
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label class="form-label" for="{{ form.nom.id_for_label }}">{{ form.nom.label }}</label>
+            {{ form.nom }}
+            {% if form.nom.errors %}
+                <div class="text-danger small">{{ form.nom.errors }}</div>
+            {% endif %}
+        </div>
+        <div class="col-md-6 mb-3">
+            <label class="form-label" for="{{ form.responsable.id_for_label }}">{{ form.responsable.label }}</label>
+            {{ form.responsable }}
+            {% if form.responsable.errors %}
+                <div class="text-danger small">{{ form.responsable.errors }}</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label" for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+        {{ form.description }}
+        {% if form.description.errors %}
+            <div class="text-danger small">{{ form.description.errors }}</div>
+        {% endif %}
+    </div>
+
+    <div class="text-end">
+        <button type="submit" class="btn btn-primary">Valider</button>
+    </div>
+</form>
+{% endblock %}
