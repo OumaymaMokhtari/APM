@@ -1,23 +1,23 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from .models import Employe
-from .models import Departement, Service, Poste
-# Formulaire de création
+from .models import Employe, Departement, Service, Poste
+
 class EmployeCreationForm(UserCreationForm):
     class Meta:
         model = Employe
         fields = ['nom', 'prenom', 'telephone', 'adresse', 'role', 'departement', 'password1', 'password2']
+
     def save(self, commit=True):
         user = super().save(commit=False)
         user.username = f"{self.cleaned_data['prenom']}.{self.cleaned_data['nom']}".lower()
         if commit:
             user.save()
         return user
-# Formulaire de mise à jour
+
 class EmployeUpdateForm(forms.ModelForm):
     class Meta:
         model = Employe
-        fields = ['username','nom', 'prenom', 'telephone', 'adresse', 'role']
+        fields = ['username', 'nom', 'prenom', 'telephone', 'adresse', 'role', 'departement']
 class DepartementForm(forms.ModelForm):
     class Meta:
         model = Departement

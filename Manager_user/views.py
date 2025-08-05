@@ -1,33 +1,39 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .forms import EmployeCreationForm, EmployeUpdateForm
-from .models import Employe
-from .models import Departement, Service, Poste
-from .forms import DepartementForm, ServiceForm, PosteForm
+from django.contrib import messages
+from .forms import EmployeCreationForm, EmployeUpdateForm, DepartementForm, ServiceForm, PosteForm
+from .models import Employe, Departement, Service, Poste
 
 def accueil(request):
     return render(request, 'accueil.html')
+
 def liste_employes(request):
     employes = Employe.objects.all()
     return render(request, 'manager_user/liste_employes.html', {'employes': employes})
+
 def create_employe(request):
     if request.method == 'POST':
         form = EmployeCreationForm(request.POST)
         if form.is_valid():
             form.save()
+            messages.success(request, "Employé ajouté avec succès.")
             return redirect('liste_employes')
     else:
         form = EmployeCreationForm()
-    return render(request, 'manager_user/create_employe.html', {'form': form})
+    return render(request, 'manager_user/ajouter_employe.html', {'form': form})
+
 def modifier_employe(request, id):
     employe = get_object_or_404(Employe, id=id)
     if request.method == 'POST':
         form = EmployeUpdateForm(request.POST, instance=employe)
         if form.is_valid():
             form.save()
+            messages.success(request, "Employé modifié avec succès.")
             return redirect('liste_employes')
+        else:
+            print(form.errors)
     else:
         form = EmployeUpdateForm(instance=employe)
-    return render(request, 'manager_user/create_employe.html', {'form': form})
+    return render(request, 'manager_user/ajouter_employe.html', {'form': form})
 def supprimer_employe(request, id):
     employe = get_object_or_404(Employe, id=id)
     employe.delete()
