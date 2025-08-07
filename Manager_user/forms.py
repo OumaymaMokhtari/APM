@@ -5,11 +5,11 @@ from .models import Employe, Departement, Service, Poste
 class EmployeCreationForm(UserCreationForm):
     class Meta:
         model = Employe
-        fields = ['nom', 'prenom', 'telephone', 'adresse', 'role', 'departement', 'password1', 'password2']
+        fields = ['nom', 'role', 'departement', 'password1', 'password2']
 
     def save(self, commit=True):
         user = super().save(commit=False)
-        user.username = f"{self.cleaned_data['prenom']}.{self.cleaned_data['nom']}".lower()
+        user.username = f"{self.cleaned_data['nom']}".lower()
         if commit:
             user.save()
         return user
@@ -17,7 +17,7 @@ class EmployeCreationForm(UserCreationForm):
 class EmployeUpdateForm(forms.ModelForm):
     class Meta:
         model = Employe
-        fields = ['username', 'nom', 'prenom', 'telephone', 'adresse', 'role', 'departement']
+        fields = ['username', 'nom', 'role', 'departement']
 class DepartementForm(forms.ModelForm):
     class Meta:
         model = Departement

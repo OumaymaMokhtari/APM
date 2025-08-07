@@ -18,9 +18,7 @@
                 <tr>
                     <th>ID</th>
                     <th>Nom</th>
-                    <th>Prénom</th>
                     <th>Rôle</th>
-                    <th>Téléphone</th>
                     <th>Département</th>
                     <th>Username</th>
                     <th>Action</th>
@@ -31,10 +29,15 @@
                 <tr>
                     <td>{{ e.id }}</td>
                     <td>{{ e.nom }}</td>
-                    <td>{{ e.prenom }}</td>
                     <td>{{ e.role }}</td>
-                    <td>{{ e.telephone }}</td>
-                    <td>{{ e.departement.nom }}</td>
+                    <td>
+                        {% if e.departement %}
+                          {{ e.departement.nom }}
+                        {% else %}
+                          Non attribué
+                        {% endif %}
+                      </td>
+                      
                     <td>{{ e.username }}</td>
                     <td>
                         <a href="{% url 'modifier_employe' e.id %}" class="btn btn-info btn-sm">

@@ -10,25 +10,23 @@ class Departement(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="departements_responsables"  # Pour éviter le conflit
+        related_name="departements_responsables" 
     )
-
     def __str__(self):
         return self.nom
 class Employe(AbstractUser):
     ROLES = [
-        ('ingenieur', 'Ingénieur'),
-        ('manager', 'Manager'),
         ('admin', 'Administrateur'),
-        ('technicien', 'Technicien'),
-        ('chef', 'Chef'),
+        ('chief', 'Chief'),
+        ('plant manager', 'Plant Manager'),
+        ('manager', 'Manager'),
+        ('ingenieur', 'Ingénieur'),
+        ('technicien', 'Technicien'),   
+        ('coordinateur', 'Coordinateur')
     ]
     nom = models.CharField(max_length=100)
-    prenom = models.CharField(max_length=100)
-    telephone = models.CharField(max_length=15)
-    adresse = models.CharField(max_length=100)
     role = models.CharField(max_length=20, choices=ROLES)
-    departement = models.ForeignKey(Departement, on_delete=models.PROTECT)
+    departement = models.ForeignKey(Departement, on_delete=models.CASCADE, null=True, blank=True)
 
     def __str__(self):
         return f"{self.nom} {self.prenom} ({self.role})"

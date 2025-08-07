@@ -8,15 +8,22 @@ class EmployeAdmin(UserAdmin):
     form = EmployeUpdateForm
     model = Employe
 
-    list_display = ['nom', 'prenom', 'telephone', 'role']
+    list_display = ['id', 'nom', 'role', 'is_staff']
+    list_filter = ['role', 'is_staff', 'is_superuser']
+    
     fieldsets = (
-        (None, {'fields': ('nom', 'prenom', 'telephone', 'adresse', 'role')}),
+        (None, {'fields': ('nom', 'role', 'password')}),
+        ('Permissions', {'fields': ('is_staff', 'is_active', 'is_superuser', 'groups', 'user_permissions')}),
     )
+    
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('nom', 'prenom', 'telephone', 'adresse', 'role', 'password1', 'password2'),
+            'fields': ('nom', 'role', 'password1', 'password2', 'is_staff', 'is_active'),
         }),
     )
+
+    search_fields = ('nom',)
+    ordering = ('nom',)
 
 admin.site.register(Employe, EmployeAdmin)
