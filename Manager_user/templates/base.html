@@ -2,61 +2,110 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <title>{% block title %}Dashboard{% endblock %}</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Dashboard{% endblock %}</title>
+
+  <!-- Icons & CSS -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/base.css' %}">
+
+  <style>
+    /* rotation de la flèche du menu KPI quand ouvert */
+    .rot-180 { transform: rotate(180deg); transition: transform .2s ease; }
+  </style>
 </head>
+
 <body>
-    <div class="sidebar">
-        <div class="logo d-flex align-items-center mb-4">
-            <img src="{% static 'logo1.png' %}" alt="Logo" class="logo-img me-2">
-            <div class="logo-text">
-                <span class="d-block fw-bold" style="color: #1c1a7e;">Orhan</span>
-                <small class="d-block fw-bold" style="color: #1c1a7e;font-size: large;">Automotive</small>
-            </div>
-        </div>
-        
-        <ul class="nav flex-column">
-            <li class="nav-item">
-                <a class="nav-link" href="{% url 'accueil' %}">
-                    <i class="fa-solid fa-house"></i> Accueil
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="{% url 'liste_employes' %}">
-                    <i class="fa-solid fa-user"></i> Employés
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="{% url 'departements' %}">
-                    <i class="fa-solid fa-building"></i> Départements
-                </a>
-            </li>
-
-            <!-- Lien vers Manager_KPI -->
-            <li class="nav-item">
-                <a class="nav-link" href="{% url 'liste_kpis' %}">
-                    <i class="fa-solid fa-chart-line"></i> KPI
-                </a>
-            </li>
-
-        </ul>
-        
-        <div class="logout mt-4">
-            <form method="post" action="{% url 'logout' %}">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-outline-primary w-20">
-                    <i class="fa-solid fa-right-from-bracket"></i>
-                </button>
-            </form>
-        </div>
+  <div class="sidebar">
+    <div class="logo d-flex align-items-center mb-4">
+      <img src="{% static 'logo1.png' %}" alt="Logo" class="logo-img me-2">
+      <div class="logo-text">
+        <span class="d-block fw-bold" style="color:#1c1a7e;">Orhan</span>
+        <small class="d-block fw-bold" style="color:#1c1a7e;font-size:large;">Automotive</small>
+      </div>
     </div>
-    
-    <div class="content">
-        {% block content %}{% endblock %}
+
+    <ul class="nav flex-column">
+      <li class="nav-item">
+        <a class="nav-link {% if request.resolver_match.url_name == 'accueil' %}active{% endif %}" href="{% url 'accueil' %}">
+          <i class="fa-solid fa-house me-2"></i> Accueil
+        </a>
+      </li>
+
+      <li class="nav-item">
+        <a class="nav-link {% if request.resolver_match.url_name == 'liste_employes' %}active{% endif %}" href="{% url 'liste_employes' %}">
+          <i class="fa-solid fa-user me-2"></i> Employés
+        </a>
+      </li>
+
+      <li class="nav-item">
+        <a class="nav-link {% if request.resolver_match.url_name == 'departements' %}active{% endif %}" href="{% url 'departements' %}">
+          <i class="fa-solid fa-building me-2"></i> Départements
+        </a>
+      </li>
+
+      {% with request.resolver_match.url_name as url_name %}
+      <!-- KPI (toggle) -->
+      <li class="nav-item">
+        <a class="nav-link d-flex align-items-center {% if url_name == 'absence_new' or url_name == 'absence_list' %}active{% endif %}"
+           data-bs-toggle="collapse"
+           href="#kpiMenu"
+           role="button"
+           aria-expanded="{% if url_name == 'absence_new' or url_name == 'absence_list' %}true{% else %}false{% endif %}"
+           aria-controls="kpiMenu">
+          <i class="fa-solid fa-chart-line me-2"></i>
+          <span>KPI</span>
+          <i class="fa-solid fa-chevron-down ms-auto small {% if url_name == 'absence_new' or url_name == 'absence_list' %}rot-180{% endif %}"></i>
+        </a>
+
+        <div class="collapse {% if url_name == 'absence_new' or url_name == 'absence_list' %}show{% endif %}" id="kpiMenu">
+          <ul class="nav flex-column ms-4 my-1">
+            <li class="nav-item">
+              <a class="nav-link {% if url_name == 'absence_new' %}active{% endif %}" href="{% url 'absence_new' %}">
+                <i class="fa-solid fa-user-minus"></i>Add Absence
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link {% if url_name == 'absence_list' %}active{% endif %}" href="{% url 'absence_list' %}">
+                Liste Absence
+              </a>
+            </li>
+          </ul>
+        </div>
+      </li>
+      {% endwith %}
+    </ul> <!-- /ul.nav -->
+
+    <div class="logout mt-4">
+      <form method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline-primary w-100">
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </button>
+      </form>
     </div>
+  </div>
+
+  <div class="content">
+    <!-- zone messages globale -->
+    {% if messages %}
+      <div class="container pt-3">
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- scripts spécifiques aux pages -->
+  {% block scripts %}{% endblock %}
 </body>
 </html>

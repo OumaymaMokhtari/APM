@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">Liste</h3>
+  </div>
+
+  <!-- Filtres simples (optionnel) -->
+  <form method="get" class="row g-2 mb-3">
+    <div class="col-md-3">
+      <label class="form-label">Du</label>
+      <input type="date" name="from" value="{{ request.GET.from }}" class="form-control">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Au</label>
+      <input type="date" name="to" value="{{ request.GET.to }}" class="form-control">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Shift</label>
+      <select name="shift" class="form-select">
+        <option value="">Tous</option>
+        <option value="MATIN" {% if request.GET.shift == 'MATIN' %}selected{% endif %}>Matin</option>
+        <option value="SOIR"  {% if request.GET.shift == 'SOIR'  %}selected{% endif %}>Soir</option>
+        <option value="NUIT"  {% if request.GET.shift == 'NUIT'  %}selected{% endif %}>Nuit</option>
+      </select>
+    </div>
+    <div class="col-md-3 d-flex align-items-end gap-2">
+      <button class="btn btn-outline-secondary" type="submit">Filtrer</button>
+      <a class="btn btn-outline-dark" href="?">Réinitialiser</a>
+    </div>
+  </form>
+
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Date</th>
+          <th>Shift</th>
+          <th>SUP</th>
+          <th>Type Abs</th>
+          <th class="text-end">Total (Type)</th>
+          <th class="text-end">Effectif</th>
+          <th class="text-end">Total Abs. (Shift)</th>
+          <th class="text-end">Taux %</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if rows %}
+          {% for r in rows %}
+          <tr class="{% if r.taux_pct and r.taux_pct|floatformat:1 >= 20 %}table-warning{% endif %}">
+            <td>{{ r.date }}{% if r.wk_jx %} ({{ r.wk_jx }}){% endif %}</td>
+            <td>{{ r.shift }}</td>
+            <td>{{ r.sup_name }}</td>
+            <td>{{ r.type_label }}</td>
+            <td class="text-end">{{ r.qty }}</td>
+            <td class="text-end">{{ r.effectif }}</td>
+            <td class="text-end">{{ r.total_shift }}</td>
+            <td class="text-end">
+              {% if r.taux_pct is not None %}{{ r.taux_pct|floatformat:1 }}%{% else %}—{% endif %}
+            </td>
+            <td class="text-end">
+              {% if r.shift_report_id %}
+                <a class="btn btn-sm btn-outline-primary" href="{% url 'absence_edit' r.shift_report_id %}"><i class="fa-solid fa-pen-to-square"></i></a>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr><td colspan="9" class="text-muted">Aucune donnée pour les filtres sélectionnés.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination optionnelle -->
+  {% if page_obj %}
+  <nav class="mt-3">
+    <ul class="pagination">
+      {% if page_obj.has_previous %}
+      <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.META.QUERY_STRING %}&{{ request.META.QUERY_STRING|cut:'page='|cut:'&' }}{% endif %}">Précédent</a></li>
+      {% endif %}
+      <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+      {% if page_obj.has_next %}
+      <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.META.QUERY_STRING %}&{{ request.META.QUERY_STRING|cut:'page='|cut:'&' }}{% endif %}">Suivant</a></li>
+      {% endif %}
+    </ul>
+  </nav>
+  {% endif %}
+</div>
+{% endblock %}

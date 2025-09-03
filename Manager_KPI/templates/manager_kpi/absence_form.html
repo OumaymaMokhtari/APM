@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">KPI Absence </h3>
+    <div class="text-muted small">
+      Utilisateur: {{ request.user.get_full_name|default:request.user.username }}
+    </div>
+  </div>
+
+  <form id="absence-form" method="post" novalidate>
+    {% csrf_token %}
+
+    <!-- Contexte shift -->
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">Date *</label>
+        <input type="date" name="date" id="id_date" class="form-control" required>
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label">Shift *</label>
+        <select name="shift" id="id_shift" class="form-select" required>
+          <option value="" selected disabled>— Choisir —</option>
+          <option value="MATIN">Matin</option>
+          <option value="SOIR">Soir</option>
+          <option value="NUIT">Nuit</option>
+        </select>
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label">Effectif *</label>
+        <input type="number" name="effectif" id="id_effectif" class="form-control" min="1" step="1" required>
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label">SUP</label>
+        <input type="text" class="form-control" value="{{ request.user.get_full_name|default:request.user.username }}" disabled>
+        <!-- Si besoin côté serveur, passe un identifiant en hidden -->
+        <input type="hidden" name="sup_username" value="{{ request.user.username }}">
+      </div>
+    </div>
+
+    <hr class="my-4">
+
+    <!-- Bloc ajout d'une ligne d'absence -->
+    <div class="row g-3 align-items-end">
+      <div class="col-md-5">
+        <label class="form-label">Type d’absence *</label>
+        <select id="type_abs" class="form-select">
+          <option value="" selected disabled>— Sélectionner —</option>
+          <option value="ABS_NON_JUST">Absent non justifié</option>
+          <option value="MIS_A_PIED">Mis à pied</option>
+          <option value="CONGE">Congé</option>
+          <option value="MALADIE">Maladie</option>
+          <option value="MATERNITE">Maternité (MAT)</option>
+          <option value="AUTORISE">Autorisé</option>
+          <option value="AUTRE">Autre</option>
+        </select>
+        <div class="form-text">Choisissez un type, puis indiquez la quantité.</div>
+      </div>
+
+      <div class="col-md-3" id="qty_col" style="display:none;">
+        <label class="form-label">Quantité (personnes) *</label>
+        <input type="number" id="qty_abs" class="form-control" min="1" step="1" value="1">
+      </div>
+
+      <div class="col-md-4" id="autre_col" style="display:none;">
+        <label class="form-label">Préciser le motif</label>
+        <input type="text" id="autre_motif" class="form-control" maxlength="120" placeholder="Ex. grève locale, rdv urgent…">
+      </div>
+
+      <div class="col-12 d-flex gap-2">
+        <button id="btn_add" type="button" class="btn btn-primary" disabled>Ajouter</button>
+      </div>
+    </div>
+
+    <!-- Tableau des lignes ajoutées -->
+    <div class="mt-4">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0">Lignes d’absence du shift</h5>
+        <span class="small text-muted">Au moins une ligne est requise</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table align-middle" id="lines_table">
+          <thead class="table-light">
+            <tr>
+              <th style="width:35%">Type d’absence</th>
+              <th style="width:20%" class="text-end">Quantité</th>
+              <th style="width:35%">Motif (si Autre)</th>
+              <th style="width:10%" class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="lines_body">
+            <tr class="text-muted" id="empty_row"><td colspan="4">Aucune ligne pour le moment.</td></tr>
+          </tbody>
+          <tfoot class="table-light">
+            <tr>
+              <th>Total absences (shift)</th>
+              <th class="text-end" id="total_absences">0</th>
+              <th colspan="2" class="text-end">
+                Taux d’absence : <span id="taux_absences">0.0%</span>
+              </th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <!-- Champ caché pour transmettre les lignes en JSON -->
+    <input type="hidden" name="lines_json" id="lines_json" value="[]">
+
+    <!-- Alertes -->
+    <div class="alert alert-danger d-none" id="error_box"></div>
+    <div class="alert alert-warning d-none" id="warn_box"></div>
+
+    <!-- Actions -->
+    <div class="d-flex gap-2 mt-3">
+      <a href="{% url 'absence_list' %}" class="btn btn-outline-secondary">Annuler</a>
+      <button type="submit" class="btn btn-success" id="btn_save">Enregistrer</button>
+    </div>
+  </form>
+</div>
+
+<script>
+(function(){
+  const typeSel = document.getElementById('type_abs');
+  const qtyCol  = document.getElementById('qty_col');
+  const qtyInp  = document.getElementById('qty_abs');
+  const autreCol= document.getElementById('autre_col');
+  const autreInp= document.getElementById('autre_motif');
+  const addBtn  = document.getElementById('btn_add');
+  const linesBody = document.getElementById('lines_body');
+  const emptyRow  = document.getElementById('empty_row');
+  const linesJson = document.getElementById('lines_json');
+  const effectif  = document.getElementById('id_effectif');
+  const totalCell = document.getElementById('total_absences');
+  const tauxCell  = document.getElementById('taux_absences');
+  const errBox    = document.getElementById('error_box');
+  const warnBox   = document.getElementById('warn_box');
+  const form      = document.getElementById('absence-form');
+
+  let lines = []; // {type,label,qty,autre}
+
+  function typeLabel(code){
+    const map = {
+      "ABS_NON_JUST": "Absent non justifié",
+      "MIS_A_PIED": "Mis à pied",
+      "CONGE": "Congé",
+      "MALADIE": "Maladie",
+      "MATERNITE": "Maternité (MAT)",
+      "AUTORISE": "Autorisé",
+      "AUTRE": "Autre"
+    };
+    return map[code] || code;
+  }
+
+  function refreshTable(){
+    // Clear body
+    linesBody.innerHTML = '';
+    if(lines.length === 0){
+      linesBody.appendChild(emptyRow);
+      emptyRow.classList.remove('d-none');
+    } else {
+      emptyRow.classList.add('d-none');
+      lines.forEach((ln, idx)=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${typeLabel(ln.type)}</td>
+          <td class="text-end">${ln.qty}</td>
+          <td>${ln.autre ? ln.autre : ''}</td>
+          <td class="text-end">
+            <button type="button" class="btn btn-sm btn-outline-danger" data-idx="${idx}">Supprimer</button>
+          </td>
+        `;
+        linesBody.appendChild(tr);
+      });
+    }
+    // Totaux
+    const total = lines.reduce((s,ln)=>s + Number(ln.qty||0), 0);
+    totalCell.textContent = total;
+    const eff = Number(effectif.value||0);
+    const taux = eff>0 ? (total/eff*100) : 0;
+    tauxCell.textContent = (Math.round(taux*10)/10).toFixed(1) + '%';
+
+    // Push to hidden
+    linesJson.value = JSON.stringify(lines);
+
+    // Warnings
+    errBox.classList.add('d-none');
+    warnBox.classList.add('d-none');
+    if(eff>0 && total>eff){
+      errBox.textContent = `Total absences (${total}) > Effectif (${eff}). Corrigez avant d’enregistrer.`;
+      errBox.classList.remove('d-none');
+    } else if(eff>0 && taux >= 20){
+      warnBox.textContent = `Taux d’absence élevé (${(Math.round(taux*10)/10).toFixed(1)}%).`;
+      warnBox.classList.remove('d-none');
+    }
+  }
+
+  function validateAddEnabled(){
+    const hasType = !!typeSel.value;
+    const qtyOK = qtyInp.value && Number(qtyInp.value) >= 1;
+    const autreOK = (typeSel.value !== 'AUTRE') || (autreInp.value && autreInp.value.trim().length>0);
+    addBtn.disabled = !(hasType && qtyOK && autreOK);
+  }
+
+  typeSel.addEventListener('change', ()=>{
+    // Affiche quantité dès qu’un type est choisi
+    qtyCol.style.display = typeSel.value ? 'block':'none';
+    qtyInp.value = 1;
+    qtyInp.focus();
+    // Affiche "préciser le motif" si Autre
+    autreCol.style.display = (typeSel.value==='AUTRE') ? 'block':'none';
+    validateAddEnabled();
+  });
+  qtyInp.addEventListener('input', validateAddEnabled);
+  autreInp.addEventListener('input', validateAddEnabled);
+
+  // Ajouter ligne
+  function addLine(){
+    if(addBtn.disabled) return;
+    // Si le type existe déjà, on remplace la quantité (évite doublons)
+    const idx = lines.findIndex(l=> l.type === typeSel.value);
+    const payload = {
+      type: typeSel.value,
+      label: typeLabel(typeSel.value),
+      qty: Number(qtyInp.value||1),
+      autre: (typeSel.value==='AUTRE') ? (autreInp.value||'') : ''
+    };
+    if(idx >= 0){
+      lines[idx] = payload;
+    } else {
+      lines.push(payload);
+    }
+    // Reset sélecteurs
+    typeSel.value = '';
+    qtyCol.style.display = 'none';
+    autreCol.style.display = 'none';
+    autreInp.value = '';
+    addBtn.disabled = true;
+    refreshTable();
+  }
+  addBtn.addEventListener('click', addLine);
+  qtyInp.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); addLine(); }});
+
+  // Supprimer ligne (délégation)
+  linesBody.addEventListener('click', (e)=>{
+    if(e.target.matches('button[data-idx]')){
+      const i = Number(e.target.getAttribute('data-idx'));
+      lines.splice(i,1);
+      refreshTable();
+    }
+  });
+
+  // Sur changement effectif
+  effectif.addEventListener('input', refreshTable);
+
+  // Validation finale
+  form.addEventListener('submit', (e)=>{
+    const eff = Number(effectif.value||0);
+    const total = lines.reduce((s,ln)=>s + Number(ln.qty||0), 0);
+    if(lines.length === 0){
+      e.preventDefault();
+      errBox.textContent = 'Au moins un type d’absence est requis.';
+      errBox.classList.remove('d-none');
+      return;
+    }
+    if(!(eff>0)){
+      e.preventDefault();
+      errBox.textContent = 'Effectif invalide (≥ 1 requis).';
+      errBox.classList.remove('d-none');
+      return;
+    }
+    if(total > eff){
+      e.preventDefault();
+      errBox.textContent = `Total absences (${total}) > Effectif (${eff}). Corrigez avant d’enregistrer.`;
+      errBox.classList.remove('d-none');
+      return;
+    }
+  });
+
+  // Première peinture
+  refreshTable();
+})();
+</script>
+{% endblock %}
