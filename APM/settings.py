@@ -77,13 +77,9 @@ WSGI_APPLICATION = "APM.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "mssql",
-        "NAME": "Kpi",
-        "HOST": "DESKTOP-1BFFPN3\\MSSQLSERVER2",
-        "PORT": "",  # vide pour SQL Server
-        "OPTIONS": {
-            "driver": "ODBC Driver 17 for SQL Server",
-        },
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
+        "OPTIONS": {"timeout": 20},
     }
 }
 

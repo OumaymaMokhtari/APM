@@ -1,91 +1,148 @@
 {% extends "base.html" %}
+{% load static %}
+
+{% block title %} Historique{% endblock %}
+
 {% block content %}
 <div class="container py-4">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h3 class="mb-0">Liste</h3>
-  </div>
+  <h1 class="mb-4">Liste</h1>
 
-  <!-- Filtres simples (optionnel) -->
-  <form method="get" class="row g-2 mb-3">
-    <div class="col-md-3">
+  <!-- compactage léger -->
+  <style>
+    .table.table-sm td, .table.table-sm th { padding: .35rem .5rem; }
+    .nowrap { white-space: nowrap; }
+  </style>
+
+  <!-- Filtres -->
+  <form method="get" class="row g-2 align-items-end mb-3">
+    <div class="col-12 col-md-4">
       <label class="form-label">Du</label>
-      <input type="date" name="from" value="{{ request.GET.from }}" class="form-control">
+      <input type="date" name="from" class="form-control" value="{{ request.GET.from }}">
     </div>
-    <div class="col-md-3">
+    <div class="col-12 col-md-4">
       <label class="form-label">Au</label>
-      <input type="date" name="to" value="{{ request.GET.to }}" class="form-control">
+      <input type="date" name="to" class="form-control" value="{{ request.GET.to }}">
     </div>
-    <div class="col-md-3">
+    <div class="col-12 col-md-4">
       <label class="form-label">Shift</label>
-      <select name="shift" class="form-select">
-        <option value="">Tous</option>
-        <option value="MATIN" {% if request.GET.shift == 'MATIN' %}selected{% endif %}>Matin</option>
-        <option value="SOIR"  {% if request.GET.shift == 'SOIR'  %}selected{% endif %}>Soir</option>
-        <option value="NUIT"  {% if request.GET.shift == 'NUIT'  %}selected{% endif %}>Nuit</option>
-      </select>
-    </div>
-    <div class="col-md-3 d-flex align-items-end gap-2">
-      <button class="btn btn-outline-secondary" type="submit">Filtrer</button>
-      <a class="btn btn-outline-dark" href="?">Réinitialiser</a>
+      <div class="input-group">
+        <select name="shift" class="form-select">
+          <option value="" {% if not request.GET.shift %}selected{% endif %}>Tous</option>
+          <option value="MATIN" {% if request.GET.shift == "MATIN" %}selected{% endif %}>Matin</option>
+          <option value="SOIR"  {% if request.GET.shift == "SOIR" %}selected{% endif %}>Soir</option>
+          <option value="NUIT"  {% if request.GET.shift == "NUIT" %}selected{% endif %}>Nuit</option>
+        </select>
+        <button class="btn btn-outline-secondary" type="submit">Filtrer</button>
+        <a class="btn btn-outline-secondary" href="{% url 'absence_list' %}">Réinitialiser</a>
+      </div>
     </div>
   </form>
 
   <div class="table-responsive">
-    <table class="table align-middle">
+    <!-- table-sm + small pour serrer l’affichage -->
+    <table class="table table-bordered align-middle table-sm small">
       <thead class="table-light">
         <tr>
-          <th>Date</th>
+          <th style="min-width:220px;">Date</th>
           <th>Shift</th>
           <th>SUP</th>
-          <th>Type Abs</th>
-          <th class="text-end">Total (Type)</th>
-          <th class="text-end">Effectif</th>
-          <th class="text-end">Total Abs. (Shift)</th>
-          <th class="text-end">Taux %</th>
-          <th>Actions</th>
+          <th class="text-nowrap">Type Abs</th>
+          <th class="text-center">Total (Type)</th>
+          <th class="text-center">Effectif</th>
+          <th class="text-center">Total Abs. (Shift)</th>
+          <th class="text-center">Taux %</th>
+          <th class="text-center">Actions</th>
         </tr>
       </thead>
       <tbody>
-        {% if rows %}
-          {% for r in rows %}
-          <tr class="{% if r.taux_pct and r.taux_pct|floatformat:1 >= 20 %}table-warning{% endif %}">
-            <td>{{ r.date }}{% if r.wk_jx %} ({{ r.wk_jx }}){% endif %}</td>
-            <td>{{ r.shift }}</td>
-            <td>{{ r.sup_name }}</td>
-            <td>{{ r.type_label }}</td>
-            <td class="text-end">{{ r.qty }}</td>
-            <td class="text-end">{{ r.effectif }}</td>
-            <td class="text-end">{{ r.total_shift }}</td>
-            <td class="text-end">
-              {% if r.taux_pct is not None %}{{ r.taux_pct|floatformat:1 }}%{% else %}—{% endif %}
-            </td>
-            <td class="text-end">
-              {% if r.shift_report_id %}
-                <a class="btn btn-sm btn-outline-primary" href="{% url 'absence_edit' r.shift_report_id %}"><i class="fa-solid fa-pen-to-square"></i></a>
-              {% endif %}
-            </td>
-          </tr>
+        {% if groups %}
+          {% for g in groups %}
+            {% with first=g.first span=g.types|length %}
+              {% for t in g.types %}
+                <tr>
+                  {% if forloop.first %}
+                    <td rowspan="{{ span }}" class="align-middle">
+                      {{ first.date|date:"M j, Y" }} ({{ first.wk_jx }})
+                    </td>
+                    <td rowspan="{{ span }}" class="align-middle">{{ first.shift }}</td>
+                    <td rowspan="{{ span }}" class="align-middle">{{ first.sup_name }}</td>
+                  {% endif %}
+
+                  <!-- nowrap pour éviter les retours à la ligne -->
+                  <td class="nowrap">{{ t.label }}</td>
+
+                  <!-- zéros affichés mais en gris pour alléger -->
+                  <td class="text-center {% if not t.qty %}text-muted{% endif %}">{{ t.qty }}</td>
+
+                  {% if forloop.first %}
+                    <td rowspan="{{ span }}" class="text-center align-middle">{{ first.effectif }}</td>
+                    <td rowspan="{{ span }}" class="text-center align-middle">{{ first.total_shift }}</td>
+                    <td rowspan="{{ span }}" class="text-center align-middle">
+                      {% if first.taux_pct is not None %}{{ first.taux_pct|floatformat:1 }}%{% else %}—{% endif %}
+                    </td>
+                    <td rowspan="{{ span }}" class="text-center align-middle">
+                      <a class="btn btn-sm btn-outline-primary"
+                         href="{% url 'absence_edit' first.shift_report_id %}"
+                         title="Modifier">
+                        <i class="fa-regular fa-pen-to-square"></i>
+                      </a>
+
+                      <form method="post"
+                            action="{% url 'absence_delete' first.shift_report_id %}"
+                            class="d-inline">
+                        {% csrf_token %}
+                        <!-- Conserver filtres + page courante après suppression -->
+                        <input type="hidden" name="next"
+                               value="?{% if qs_keep %}{{ qs_keep }}&{% endif %}page={{ page_obj.number }}">
+                        <button type="submit"
+                                class="btn btn-sm btn-outline-danger"
+                                title="Supprimer"
+                                onclick="return confirm('Supprimer ce shift et ses données d’absence ?');">
+                          <i class="fa-regular fa-trash-can"></i>
+                        </button>
+                      </form>
+                    </td>
+                  {% endif %}
+                </tr>
+              {% endfor %}
+            {% endwith %}
           {% endfor %}
         {% else %}
-          <tr><td colspan="9" class="text-muted">Aucune donnée pour les filtres sélectionnés.</td></tr>
+          <tr><td colspan="9" class="text-center text-muted py-4">Aucune donnée.</td></tr>
         {% endif %}
       </tbody>
     </table>
   </div>
 
-  <!-- Pagination optionnelle -->
-  {% if page_obj %}
-  <nav class="mt-3">
-    <ul class="pagination">
-      {% if page_obj.has_previous %}
-      <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.META.QUERY_STRING %}&{{ request.META.QUERY_STRING|cut:'page='|cut:'&' }}{% endif %}">Précédent</a></li>
-      {% endif %}
-      <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
-      {% if page_obj.has_next %}
-      <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.META.QUERY_STRING %}&{{ request.META.QUERY_STRING|cut:'page='|cut:'&' }}{% endif %}">Suivant</a></li>
-      {% endif %}
-    </ul>
-  </nav>
+  <!-- Pagination (sur les dates) -->
+  {% if page_obj.paginator.num_pages > 1 %}
+    <nav aria-label="Pagination">
+      <ul class="pagination justify-content-end">
+        {% if page_obj.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?{% if qs_keep %}{{ qs_keep }}&{% endif %}page={{ page_obj.previous_page_number }}">«</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">«</span></li>
+        {% endif %}
+
+        {% for i in page_obj.paginator.page_range %}
+          <li class="page-item {% if page_obj.number == i %}active{% endif %}">
+            <a class="page-link" href="?{% if qs_keep %}{{ qs_keep }}&{% endif %}page={{ i }}">{{ i }}</a>
+          </li>
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?{% if qs_keep %}{{ qs_keep }}&{% endif %}page={{ page_obj.next_page_number }}">»</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">»</span></li>
+        {% endif %}
+      </ul>
+    </nav>
   {% endif %}
 </div>
 {% endblock %}
+
+{% block scripts %}{% endblock %}

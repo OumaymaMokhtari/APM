@@ -1,40 +1,33 @@
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
-from .models import Employe, Departement, Service, Poste
+from django.contrib.auth.forms import UserCreationForm, UserChangeForm
+from .models import Employe, Departement
 
 class EmployeCreationForm(UserCreationForm):
+    """Formulaire de création d'un Employe."""
     class Meta:
         model = Employe
-        fields = ['nom', 'role', 'departement', 'password1', 'password2']
+        fields = (
+            "username", "password1", "password2",
+            "first_name", "last_name", "email",
+            "nom", "role", "departement",
+            "is_active", "is_staff", "is_superuser", "groups",
+        )
 
-    def save(self, commit=True):
-        user = super().save(commit=False)
-        user.username = f"{self.cleaned_data['nom']}".lower()
-        if commit:
-            user.save()
-        return user
-
-class EmployeUpdateForm(forms.ModelForm):
+class EmployeUpdateForm(UserChangeForm):
+    """Formulaire d'édition d'un Employe."""
+    password = None  # on ne montre pas le hash
     class Meta:
         model = Employe
-        fields = ['username', 'nom', 'role', 'departement']
+        fields = (
+            "username",
+            "first_name", "last_name", "email",
+            "nom", "role", "departement",
+            "is_active", "is_staff", "is_superuser",
+            "groups", "user_permissions",
+        )
+
 class DepartementForm(forms.ModelForm):
+    """Formulaire simple pour créer/éditer un Département."""
     class Meta:
         model = Departement
-        fields = ['nom', 'description', 'responsable']
-        widgets = {
-            'nom': forms.TextInput(attrs={'class': 'form-control'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'responsable': forms.Select(attrs={'class': 'form-select'}),
-        }
-
-class ServiceForm(forms.ModelForm):
-    class Meta:
-        model = Service
-        fields = ['nom', 'departement']
-class PosteForm(forms.ModelForm):
-    class Meta:
-        model = Poste
-        fields = ['nom', 'service']
-
-
+        fields = ("nom", "description", "responsable")

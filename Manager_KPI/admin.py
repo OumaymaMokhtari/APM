@@ -1,11 +1,13 @@
 from django.contrib import admin
+from .models import Kpi, ShiftReport
 
-from .models import KpiTarget, KpiValue
+@admin.register(Kpi)
+class KpiAdmin(admin.ModelAdmin):
+    list_display  = ("nom","departement","frequence","aggregation_type","date_modification")
+    list_filter   = ("departement","frequence","aggregation_type")
+    search_fields = ("nom",)
 
-@admin.register(KpiTarget)
-class KpiTargetAdmin(admin.ModelAdmin):
-    list_display = [field.name for field in KpiTarget._meta.fields]
-
-@admin.register(KpiValue)
-class KpiValueAdmin(admin.ModelAdmin):
-    list_display = [field.name for field in KpiValue._meta.fields]
+@admin.register(ShiftReport)
+class ShiftReportAdmin(admin.ModelAdmin):
+    list_display  = ("date","shift","sup","effectif","total_absences","taux_absence")
+    list_filter   = ("date","shift","sup")
