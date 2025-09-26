@@ -5,7 +5,7 @@ from .models import Employe, Departement
 from .forms import EmployeCreationForm, EmployeUpdateForm
 
 
-
+# Admin pour gérer les départements (liste, recherche, auto-complétion du responsable).
 @admin.register(Departement)
 class DepartementAdmin(admin.ModelAdmin):
     """Admin simple pour les départements."""
@@ -14,6 +14,7 @@ class DepartementAdmin(admin.ModelAdmin):
     autocomplete_fields = ("responsable",)
 
 
+# Admin pour le modèle utilisateur Employe : formulaires, colonnes, filtres et permissions.
 @admin.register(Employe)
 class EmployeAdmin(UserAdmin):
     """
@@ -57,6 +58,7 @@ class EmployeAdmin(UserAdmin):
         }),
     )
 
+    # Retourne un nom lisible pour l’affichage en list_display.
     def get_name(self, obj):
         """Affiche un nom lisible dans la liste."""
         return obj.get_full_name() or f"{obj.first_name} {obj.last_name}".strip() or obj.nom or obj.username

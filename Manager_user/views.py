@@ -7,10 +7,7 @@ from .forms import EmployeCreationForm, EmployeUpdateForm, DepartementForm
 from .models import Employe, Departement  
 
 
-
-# ------------------------------
-# Helpers d'autorisation
-# ------------------------------
+# Vérifie si l’utilisateur peut gérer les RH (Plant Manager ou Manager du dep. RH/HR).
 def can_manage_hr(user) -> bool:
     """Accès autorisé pour:
        - Plant Manager
@@ -28,6 +25,7 @@ def can_manage_hr(user) -> bool:
     return role == "plant manager" or (role == "manager" and dep_name in ("rh", "hr"))
 
 
+# Décorateur: restreint l’accès aux RH (Plant Manager ou Manager RH/HR), sinon redirige.
 def hr_required(viewfunc):
     """Décorateur: exige Plant Manager OU Manager RH/HR.
        Redirige vers l'accueil si l'accès est refusé.
@@ -42,21 +40,19 @@ def hr_required(viewfunc):
     return _wrapped
 
 
-# ------------------------------
-# Vues publiques / générales
-# ------------------------------
+# Page d’accueil publique.
 def accueil(request):
     return render(request, 'accueil.html')
 
 
-# ------------------------------
-# Employés (protégé)
-# ------------------------------
+# Liste tous les employés (accès RH requis).
 @hr_required
 def liste_employes(request):
     employes = Employe.objects.all()
     return render(request, 'manager_user/liste_employes.html', {'employes': employes})
 
+
+# Crée un employé via formulaire (POST) ou affiche le formulaire (GET).
 @hr_required
 def create_employe(request):
     if request.method == 'POST':
@@ -69,6 +65,8 @@ def create_employe(request):
         form = EmployeCreationForm()
     return render(request, 'manager_user/ajouter_employe.html', {'form': form})
 
+
+# Modifie un employé existant (par id) via formulaire.
 @hr_required
 def modifier_employe(request, id):
     employe = get_object_or_404(Employe, id=id)
@@ -84,6 +82,8 @@ def modifier_employe(request, id):
         form = EmployeUpdateForm(instance=employe)
     return render(request, 'manager_user/ajouter_employe.html', {'form': form})
 
+
+# Supprime un employé (puis revient à la liste).
 @hr_required
 def supprimer_employe(request, id):
     employe = get_object_or_404(Employe, id=id)
@@ -92,14 +92,14 @@ def supprimer_employe(request, id):
     return redirect('liste_employes')
 
 
-# ------------------------------
-# Départements (protégé)
-# ------------------------------
+# Liste tous les départements.
 @hr_required
 def liste_departements(request):
     departements = Departement.objects.all()
     return render(request, 'departements/liste_departements.html', {'departements': departements})
 
+
+# Ajoute un département via formulaire.
 @hr_required
 def ajouter_departement(request):
     if request.method == 'POST':
@@ -112,6 +112,8 @@ def ajouter_departement(request):
         form = DepartementForm()
     return render(request, 'departements/form_departement.html', {'form': form})
 
+
+# Modifie un département (par pk) via formulaire.
 @hr_required
 def modifier_departement(request, pk):
     departement = get_object_or_404(Departement, pk=pk)
@@ -122,6 +124,8 @@ def modifier_departement(request, pk):
         return redirect('liste_departements')
     return render(request, 'departements/form_departement.html', {'form': form})
 
+
+# Supprime un département après confirmation (POST).
 @hr_required
 def supprimer_departement(request, pk):
     departement = get_object_or_404(Departement, pk=pk)
@@ -131,15 +135,11 @@ def supprimer_departement(request, pk):
         return redirect('liste_departements')
     return render(request, 'departements/confirmer_suppression.html', {'objet': departement})
 
+
+# Détail d’un département : affiche aussi ses services (si liés).
 @hr_required
 def detail_departement(request, pk):
     departement = get_object_or_404(Departement, pk=pk)
     services = departement.services.all()
     return render(request, 'departement/detail_departement.html', {'departement': departement, 'services': services})
 
-# Décommente si tu utilises Service et n'oublie pas de l'importer
-# @hr_required
-# def detail_service(request, pk):
-#     service = get_object_or_404(Service, pk=pk)
-#     postes = service.postes.all()
-#     return render(request, 'departement/detail_service.html', {'service': service, 'postes': postes})

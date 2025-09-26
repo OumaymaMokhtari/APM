@@ -6,10 +6,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Dashboard{% endblock %}</title>
 
+  <!-- Icons & CSS -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'css/base.css' %}">
-  <style>.rot-180{transform:rotate(180deg);transition:transform .2s ease}</style>
+  <style>
+    .rot-180 { transform: rotate(180deg); transition: transform .2s ease; }
+  </style>
 </head>
 
 <body>
@@ -22,17 +25,14 @@
       </div>
     </div>
 
-    <ul class="nav flex-column">
+    <!-- IMPORTANT : id pour pouvoir lier les collapse au parent -->
+    <ul id="sidebarNav" class="nav flex-column">
       <!-- Accueil -->
       <li class="nav-item">
         <a class="nav-link {% if request.resolver_match.url_name == 'accueil' %}active{% endif %}" href="{% url 'accueil' %}">
           <i class="fa-solid fa-house me-2"></i> Accueil
         </a>
       </li>
-
-      <!-- Employés / Départements visibles seulement pour :
-           - Plant Manager
-           - Manager du département RH / HR -->
       {% with u=request.user %}
         {% if u.is_authenticated %}
           {% if u.role|default_if_none:''|lower == 'plant manager' %}
@@ -50,7 +50,7 @@
             </li>
           {% elif u.role|default_if_none:''|lower == 'manager' %}
             {% if u.departement and u.departement.nom %}
-              {% if u.departement.nom|lower == 'rh' or u.departement.nom|lower == 'hr' %}
+              {% if u.departement.nom|lower == 'rh' or u.deartement.nom|lower == 'hr' %}
                 <li class="nav-item">
                   <a class="nav-link {% if request.resolver_match.url_name == 'liste_employes' %}active{% endif %}"
                      href="{% url 'liste_employes' %}">
@@ -69,9 +69,11 @@
         {% endif %}
       {% endwith %}
 
-      {% with request.resolver_match.url_name as url_name %}
+      {% with url_name=request.resolver_match.url_name %}
         <li class="nav-item">
-          <a class="nav-link d-flex align-items-center {% if url_name == 'absence_new' or url_name == 'absence_list' %}active{% endif %}"
+          <!-- NIVEAU 1 : KPI -->
+          <a class="nav-link d-flex align-items-center
+                    {% if url_name == 'absence_new' or url_name == 'absence_list' %}active{% endif %}"
              data-bs-toggle="collapse"
              href="#kpiMenu"
              role="button"
@@ -79,26 +81,57 @@
              aria-controls="kpiMenu">
             <i class="fa-solid fa-chart-line me-2"></i>
             <span>KPI</span>
-            <i class="fa-solid fa-chevron-down ms-auto small {% if url_name == 'absence_new' or url_name == 'absence_list' %}rot-180{% endif %}"></i>
+            <i class="fa-solid fa-chevron-down ms-auto small
+                      {% if url_name == 'absence_new' or url_name == 'absence_list' %}rot-180{% endif %}"></i>
           </a>
 
-          <div class="collapse {% if url_name == 'absence_new' or url_name == 'absence_list' %}show{% endif %}" id="kpiMenu">
+          <!-- Lien au parent pour garder le collapse dans la sidebar -->
+          <div class="collapse
+                      {% if url_name == 'absence_new' or url_name == 'absence_list' %}show{% endif %}"
+               id="kpiMenu" data-bs-parent="#sidebarNav">
             <ul class="nav flex-column ms-4 my-1">
+
+              <!-- NIVEAU 2 : ABSENCE -->
               <li class="nav-item">
-                <a class="nav-link {% if url_name == 'absence_new' %}active{% endif %}" href="{% url 'absence_new' %}">
-                  <i class="fa-solid fa-user-minus me-2"></i> Add Absence
+                <a class="nav-link d-flex align-items-center
+                          {% if url_name == 'absence_new' or url_name == 'absence_list' %}active{% endif %}"
+                   data-bs-toggle="collapse"
+                   href="#kpiAbsenceMenu"
+                   role="button"
+                   aria-expanded="{% if url_name == 'absence_new' or url_name == 'absence_list' %}true{% else %}false{% endif %}"
+                   aria-controls="kpiAbsenceMenu">
+                  <i class="fa-regular fa-user me-2"></i>
+                  <span>Absence</span>
+                  <i class="fa-solid fa-chevron-down ms-auto small
+                            {% if url_name == 'absence_new' or url_name == 'absence_list' %}rot-180{% endif %}"></i>
                 </a>
+
+                <div class="collapse
+                            {% if url_name == 'absence_new' or url_name == 'absence_list' %}show{% endif %}"
+                     id="kpiAbsenceMenu" data-bs-parent="#kpiMenu">
+                  <ul class="nav flex-column ms-4 my-1">
+                    <li class="nav-item">
+                      <a class="nav-link {% if url_name == 'absence_new' %}active{% endif %}"
+                         href="{% url 'absence_new' %}">
+                        <i class="fa-solid fa-plus me-2"></i> Ajouter
+                      </a>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link {% if url_name == 'absence_list' %}active{% endif %}"
+                         href="{% url 'absence_list' %}">
+                        <i class="fa-solid fa-list-ul me-2"></i> Liste
+                      </a>
+                    </li>
+                  </ul>
+                </div>
               </li>
-              <li class="nav-item">
-                <a class="nav-link {% if url_name == 'absence_list' %}active{% endif %}" href="{% url 'absence_list' %}">
-                  Liste Absence
-                </a>
-              </li>
+
+              {# D’autres KPI pourront être ajoutés ici sur le même modèle #}
             </ul>
           </div>
         </li>
       {% endwith %}
-    </ul>
+    </ul> <!-- /#sidebarNav -->
 
     <div class="logout mt-4">
       <form method="post" action="{% url 'logout' %}">

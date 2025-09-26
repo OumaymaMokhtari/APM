@@ -4,14 +4,17 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db import transaction
-from Manager_user.models import Employe
-from .models import Kpi, ShiftReport
 from django.urls import reverse
+
+from Manager_user.models import Employe
+from .models import Kpi, Absence
 
 
 # ---------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------
+
+# Convertit proprement en entier non négatif (retourne default en cas d’erreur).
 def _to_int(x, default=0):
     """Convertit en int >= 0 (évite les ValueError)."""
     try:
@@ -20,24 +23,24 @@ def _to_int(x, default=0):
         return default
 
 
+# Renvoie uniquement les employés ayant le rôle "superviseur" (compatible Enum/texte).
 def supervisors_qs():
     """
     Retourne uniquement les employés ayant le rôle 'superviseur'.
     Compatible avec un Enum Employe.Role.SUPERVISEUR ou une chaîne simple.
     """
     qs = Employe.objects.all()
-    # Cas: Enum interne (ex: class Role(models.TextChoices): SUPERVISEUR = "superviseur", "Superviseur")
     if hasattr(Employe, "Role") and hasattr(Employe.Role, "SUPERVISEUR"):
         return qs.filter(role=Employe.Role.SUPERVISEUR)
-    # Cas: simple CharField avec valeur "superviseur"
     return qs.filter(role__iexact="superviseur")
-
 
 # ---------------------------------------------------------------------
 # Vues KPI (génériques)
 # ---------------------------------------------------------------------
+
+# Crée un nouveau KPI via formulaire (POST) ou affiche le formulaire (GET).
 def ajouter_kpi(request):
-    from .forms import KpiForm  # import local pour éviter les imports globaux
+    from .forms import KpiForm  # import local
     if request.method == 'POST':
         form = KpiForm(request.POST)
         if form.is_valid():
@@ -49,31 +52,28 @@ def ajouter_kpi(request):
     return render(request, 'Manager_KPI/ajouter_kpi.html', {'form': form})
 
 
+# Affiche la liste simple de tous les KPI.
 def liste_kpis(request):
     kpis = Kpi.objects.all()
     return render(request, 'Manager_KPI/liste_kpis.html', {'kpis': kpis})
 
 
 # ---------------------------------------------------------------------
-# KPI Absence (ShiftReport seul)
+# KPI Absence (modèle Absence)
 # ---------------------------------------------------------------------
+
+# Création/mise à jour d’une Absence (clé unique: date+shift+sup) à partir des 7 motifs.
 def absence_new(request):
-    """
-    Crée / met à jour un ShiftReport (clé: date+shift+sup) à partir des 7 champs.
-    """
-    # n’affiche que les superviseurs
+
     sups = supervisors_qs().order_by("nom")
 
     if request.method == "POST":
-        # champs de base
         date_str = request.POST.get("date")
         shift    = request.POST.get("shift")
         effectif = _to_int(request.POST.get("effectif"))
         sup_id   = request.POST.get("sup_id")
-        # n’accepte que les superviseurs
         sup      = supervisors_qs().filter(id=sup_id).first()
 
-        # validations simples
         try:
             date = datetime.strptime(date_str, "%Y-%m-%d").date()
         except Exception:
@@ -89,7 +89,6 @@ def absence_new(request):
             messages.error(request, "Effectif invalide (≥ 1).")
             return render(request, "Manager_KPI/absence_form.html", {"sups": sups})
 
-        # 7 champs d'absence
         data = {
             "abs_non_justifie": _to_int(request.POST.get("abs_non_justifie")),
             "mis_a_pied":       _to_int(request.POST.get("mis_a_pied")),
@@ -112,8 +111,7 @@ def absence_new(request):
             messages.error(request, "Merci de préciser le motif si ‘Autre’ > 0.")
             return render(request, "Manager_KPI/absence_form.html", {"sups": sups})
 
-        # upsert direct sur ShiftReport
-        ShiftReport.objects.update_or_create(
+        Absence.objects.update_or_create(
             date=date, shift=shift, sup=sup,
             defaults={
                 "effectif": effectif,
@@ -125,21 +123,21 @@ def absence_new(request):
         messages.success(request, "Absence enregistrée.")
         return redirect("absence_list")
 
-    # GET : formulaire vierge
+    # GET
     return render(request, "Manager_KPI/absence_form.html", {"sups": sups})
 
 
+# Édite une Absence existante (gère le changement de clé en “upsert” + suppression ancien).
 def absence_edit(request, pk):
     """
-    Édition d’un ShiftReport existant.
-    Si la clé (date, shift, sup) change, on crée/actualise la nouvelle
-    ligne PUIS on supprime l’ancienne pour éviter le doublon.
+    Édition d’une Absence existante.
+    Si la clé (date, shift, sup) change, on upsert la nouvelle puis
+    on supprime l’ancienne pour éviter les doublons.
     """
-    obj  = get_object_or_404(ShiftReport, pk=pk)
+    obj  = get_object_or_404(Absence, pk=pk)
     sups = supervisors_qs().order_by("nom")
 
     if request.method == "POST":
-        # --- lecture champs (avec fallback sur l'ancien obj) ---
         date_str = request.POST.get("date") or obj.date.strftime("%Y-%m-%d")
         shift    = request.POST.get("shift") or obj.shift
         effectif = _to_int(request.POST.get("effectif"), obj.effectif)
@@ -183,9 +181,8 @@ def absence_edit(request, pk):
             messages.error(request, "Merci de préciser le motif si ‘Autre’ > 0.")
             return render(request, "Manager_KPI/absence_form.html", {"sups": sups, "obj": obj})
 
-        # --- upsert + suppression de l'ancien si clé changée ---
         with transaction.atomic():
-            new_report, _ = ShiftReport.objects.update_or_create(
+            new_abs, _ = Absence.objects.update_or_create(
                 date=date,
                 shift=shift,
                 sup=sup,
@@ -195,8 +192,7 @@ def absence_edit(request, pk):
                     **data,
                 }
             )
-            # si la clé (date/shift/sup) a changé -> PK différente -> on supprime l'ancien
-            if new_report.pk != obj.pk:
+            if new_abs.pk != obj.pk:
                 obj.delete()
 
         messages.success(request, "Shift mis à jour avec succès.")
@@ -216,12 +212,9 @@ def absence_edit(request, pk):
         "autre_motif": obj.autre_motif,
     }
     return render(request, "Manager_KPI/absence_form.html", ctx)
+
+# Liste historique des absences avec filtres et pagination basée sur les dates (2 jours/page).
 def absence_list(request):
-    """
-    Historique avec fusion de cellules (rowspan).
-    Pagination par **date** : 2 jours par page.
-    Affiche les 7 types (y compris 0).
-    """
     # -- filtres --
     def parse_date(s):
         try:
@@ -231,7 +224,7 @@ def absence_list(request):
 
     d_from  = parse_date(request.GET.get("from", "") or "")
     d_to    = parse_date(request.GET.get("to", "") or "")
-    f_shift = request.GET.get("shift") or ""  # 'MATIN'|'SOIR'|'NUIT'|''
+    f_shift = request.GET.get("shift") or ""  # 'MATIN'|'SOIR'|'NUIT'
 
     flt = Q()
     if d_from:  flt &= Q(date__gte=d_from)
@@ -239,21 +232,19 @@ def absence_list(request):
     if f_shift in ("MATIN", "SOIR", "NUIT"):
         flt &= Q(shift=f_shift)
 
-    # On charge tous les reports filtrés (triés)...
-    reports = (ShiftReport.objects
+    # Tous les enregistrements filtrés (triés)
+    reports = (Absence.objects
                .select_related("sup")
                .filter(flt)
                .order_by("-date", "shift", "sup_id"))
 
-    # ...puis on prépare la pagination sur les **dates distinctes**
-    # (2 jours par page)
+    # Pagination par dates distinctes (2 jours/page)
     days_per_page = 2
     all_dates = sorted({r.date for r in reports}, reverse=True)
     date_paginator = Paginator(all_dates, days_per_page)
     page_obj = date_paginator.get_page(request.GET.get("page"))
-    page_dates = set(page_obj.object_list)  # les 2 dates de la page courante
+    page_dates = set(page_obj.object_list)
 
-    # Ordre fixe des 7 types
     label_map = [
         ("abs_non_justifie", "Absent non justifié"),
         ("mis_a_pied",       "Mis à pied"),
@@ -264,7 +255,6 @@ def absence_list(request):
         ("autre",            "Autre"),
     ]
 
-    # On ne construit les groupes que pour les reports des 2 dates affichées
     groups = []
     for rep in reports:
         if rep.date not in page_dates:
@@ -291,7 +281,7 @@ def absence_list(request):
                 "total_shift": rep.total_absences,
                 "taux_pct": (rep.total_absences / rep.effectif * 100.0) if rep.effectif else None,
             },
-            "types": types,  # 7 lignes -> rowspan constant
+            "types": types,  # 7 lignes
         })
 
     # Conserver les filtres dans la pagination
@@ -300,26 +290,23 @@ def absence_list(request):
     qs_keep = q.urlencode()
 
     return render(request, "Manager_KPI/absence_list.html", {
-        "groups": groups,     # <— on passe les groupes séparément
-        "page_obj": page_obj, # <— paginator basé sur les dates
+        "groups": groups,     # liste des blocs à afficher
+        "page_obj": page_obj, # pagination basée sur les dates
         "qs_keep": qs_keep,
     })
+
+# Supprime une entrée d’absence (POST uniquement) puis revient à la liste en gardant les filtres.
 @transaction.atomic
 def absence_delete(request, pk):
-    """
-    Supprime un ShiftReport (et donc son shift) en POST uniquement.
-    On redirige vers la liste en conservant les filtres/page ('next').
-    """
     if request.method != "POST":
         messages.error(request, "Méthode non autorisée.")
         return redirect("absence_list")
 
-    report = get_object_or_404(ShiftReport, pk=pk)
+    report = get_object_or_404(Absence, pk=pk)
     report.delete()
     messages.success(request, "Shift supprimé avec succès.")
 
     next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or ""
-    # si 'next' est une query-string (commence par '?'), on repart sur absence_list + qs
     if next_url.startswith("?"):
         return redirect(f"{reverse('absence_list')}{next_url}")
     return redirect("absence_list")
